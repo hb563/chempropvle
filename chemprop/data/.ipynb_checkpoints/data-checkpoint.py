@@ -58,7 +58,6 @@ class MoleculeDatapoint:
                  smiles: List[str],
                  targets: List[Optional[float]] = None,
                  row: OrderedDict = None,
-                 molfrac_weight: float = 1,
                  data_weight: float = 1,
                  features: np.ndarray = None,
                  features_generator: List[str] = None,
@@ -71,7 +70,6 @@ class MoleculeDatapoint:
         :param smiles: A list of the SMILES strings for the molecules.
         :param targets: A list of targets for the molecule (contains None for unknown target values).
         :param row: The raw CSV row containing the information for this molecule.
-        :param molfrac_weight: Multiplied by the encodings to weight the datapoint.
         :param data_weight: Weighting of the datapoint for the loss function.
         :param features: A numpy array containing additional features (e.g., Morgan fingerprint).
         :param features_generator: A list of features generators to use.
@@ -87,7 +85,6 @@ class MoleculeDatapoint:
         self.smiles = smiles
         self.targets = targets
         self.row = row
-        self.molfrac_weight = molfrac_weight
         self.data_weight = data_weight
         self.features = features
         self.features_generator = features_generator
@@ -358,12 +355,6 @@ class MoleculeDataset(Dataset):
             return None
 
         return [d.bond_features for d in self._data]
-    
-    def molfrac_weight(self) -> List[float]:
-        """
-        Returns the mole fraction weightings associated with each molecule
-        """
-        return [d.molfrac_weight for d in self._data]        
 
     def data_weights(self) -> List[float]:
         """

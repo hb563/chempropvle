@@ -174,8 +174,6 @@ class MPN(nn.Module):
         self.atom_descriptors = args.atom_descriptors
         self.overwrite_default_atom_features = args.overwrite_default_atom_features
         self.overwrite_default_bond_features = args.overwrite_default_bond_features
-        self.molfrac_weights = args.molfrac_weights
-        self.number_of_molecules = args.number_of_molecules
 
         if self.features_only:
             return
@@ -188,7 +186,6 @@ class MPN(nn.Module):
 
     def forward(self,
                 batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
-                molfrac_weights_batch: List[np.ndarray] = None,
                 features_batch: List[np.ndarray] = None,
                 atom_descriptors_batch: List[np.ndarray] = None,
                 atom_features_batch: List[np.ndarray] = None,
@@ -200,8 +197,6 @@ class MPN(nn.Module):
                       list of :class:`~chemprop.features.featurization.BatchMolGraph`.
                       The outer list or BatchMolGraph is of length :code:`num_molecules` (number of datapoints in batch),
                       the inner list is of length :code:`number_of_molecules` (number of molecules per datapoint).
-                      :param molfrac_weights_batch: A list of numpy arrays containing molefractions of molecules used for weights.
-        :param molfrac_weights_batch: A list of numpy arrays containing mole fraction weights.
         :param features_batch: A list of numpy arrays containing additional features.
         :param atom_descriptors_batch: A list of numpy arrays containing additional atom descriptors.
         :param atom_features_batch: A list of numpy arrays containing additional atom features.
@@ -265,12 +260,7 @@ class MPN(nn.Module):
         if self.use_input_features:
             if len(features_batch.shape) == 1:
                 features_batch = features_batch.view(1, -1)
-        
-#         if self.molfrac_weights:
-#             encodings_x_molfrac = torch.Tensor(molfrac_weights_batch)
-#             encodings_x_molfrac = 
-                
-        print(encodings.size())        
+
             output = torch.cat([output, features_batch], dim=1)
 
         return output

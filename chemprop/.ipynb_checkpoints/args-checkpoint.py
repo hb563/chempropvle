@@ -218,8 +218,6 @@ class TrainArgs(CommonArgs):
     # General arguments
     data_path: str
     """Path to data CSV file."""
-    molfrac_weights_path: str = None
-    """Path to mole fractions CSV file."""
     target_columns: List[str] = None
     """
     Name of the columns containing target values.
@@ -299,8 +297,6 @@ class TrainArgs(CommonArgs):
     """
 
     # Model arguments
-    molfrac_weights: bool = False
-    """Whether to multiply mole fractions as weights to MPN."""        
     bias: bool = False
     """Whether to add bias to linear layers."""
     hidden_size: int = 300

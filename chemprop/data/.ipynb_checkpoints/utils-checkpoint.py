@@ -98,22 +98,6 @@ def get_header(path: str) -> List[str]:
     return header
 
 
-def get_molfrac_weights(path: str) -> List[float]:
-    """
-    Returns the list of mole fractions used as MPN weights as stored in a CSV file.
-
-    :param path: Path to a CSV file.
-    :return: A list of floats containing the mole fraction weights.
-    """
-    molfrac_weights = []
-    with open(path) as f:
-        reader=csv.reader(f)
-        next(reader) #skip header row
-        for line in reader:
-            molfrac_weights.append(float(line[0]))
-    return weights
-
-
 def get_data_weights(path: str) -> List[float]:
     """
     Returns the list of data weights for the loss function as stored in a CSV file.
@@ -190,7 +174,6 @@ def get_data(path: str,
              ignore_columns: List[str] = None,
              skip_invalid_smiles: bool = True,
              args: Union[TrainArgs, PredictArgs] = None,
-             molfrac_weights_path: str = None,
              data_weights_path: str = None,
              features_path: List[str] = None,
              features_generator: List[str] = None,
@@ -211,7 +194,6 @@ def get_data(path: str,
     :param ignore_columns: Name of the columns to ignore when :code:`target_columns` is not provided.
     :param skip_invalid_smiles: Whether to skip and filter out invalid smiles using :func:`filter_invalid_smiles`.
     :param args: Arguments, either :class:`~chemprop.args.TrainArgs` or :class:`~chemprop.args.PredictArgs`.
-    :param molfrac_weights_path: A path to a file containing molefractions for each molecule to be weights of MPN.
     :param data_weights_path: A path to a file containing weights for each molecule in the loss function.
     :param features_path: A list of paths to files containing features. If provided, it is used
                           in place of :code:`args.features_path`.
@@ -234,7 +216,6 @@ def get_data(path: str,
         smiles_columns = smiles_columns if smiles_columns is not None else args.smiles_columns
         target_columns = target_columns if target_columns is not None else args.target_columns
         ignore_columns = ignore_columns if ignore_columns is not None else args.ignore_columns
-        molfrac_weights_path = molfrac_weights_path if molfrac_weights_path is not None else args.molfrac_weights_path
         data_weights_path = data_weights_path if data_weights_path is not None else args.data_weights_path
         features_path = features_path if features_path is not None else args.features_path
         features_generator = features_generator if features_generator is not None else args.features_generator
@@ -258,12 +239,6 @@ def get_data(path: str,
     else:
         features_data = None
 
-    # Load mole fraction weights
-    if molfrac_weights_path is not None:
-        molfrac_weights = get_molfrac_weights(molfrac_weights_path)
-    else:
-        molfrac_weights = None
-        
     # Load data weights
     if data_weights_path is not None:
         data_weights = get_data_weights(data_weights_path)
@@ -283,7 +258,7 @@ def get_data(path: str,
                 ignore_columns=ignore_columns,
             )
 
-        all_smiles, all_targets, all_rows, all_features, all_molfrac_weights, all_weights = [], [], [], [], [], []
+        all_smiles, all_targets, all_rows, all_features, all_weights = [], [], [], [], []
         for i, row in enumerate(tqdm(reader)):
             smiles = [row[c] for c in smiles_columns]
 
@@ -291,17 +266,14 @@ def get_data(path: str,
 
             # Check whether all targets are None and skip if so
             if skip_none_targets and all(x is None for x in targets):
-                continue  #################################
+                continue
 
             all_smiles.append(smiles)
             all_targets.append(targets)
 
             if features_data is not None:
                 all_features.append(features_data[i])
-                
-            if molfrac_weights is not None:
-                all_molfrac_weights.append(molfrac_weights[i])
-                
+
             if data_weights is not None:
                 all_weights.append(data_weights[i])
 
@@ -336,7 +308,6 @@ def get_data(path: str,
                 smiles=smiles,
                 targets=targets,
                 row=all_rows[i] if store_row else None,
-                molfrac_weight=all_molfrac_weights[i] if molfrac_weights is not None else 1.,
                 data_weight=all_weights[i] if data_weights is not None else 1.,
                 features_generator=features_generator,
                 features=all_features[i] if features_data is not None else None,
