@@ -8,10 +8,10 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 from rdkit import Chem
 
 from .scaler import StandardScaler
-from chemprop.features import get_features_generator
-from chemprop.features import BatchMolGraph, MolGraph
-from chemprop.features import is_explicit_h, is_reaction
-from chemprop.rdkit import make_mol
+from chempropvle.chemprop.features import get_features_generator
+from chempropvle.chemprop.features import BatchMolGraph, MolGraph
+from chempropvle.chemprop.features import is_explicit_h, is_reaction
+from chempropvle.chemprop.rdkit import make_mol
 
 # Cache of graph featurizations
 CACHE_GRAPH = True
@@ -59,6 +59,8 @@ class MoleculeDatapoint:
                  targets: List[Optional[float]] = None,
                  row: OrderedDict = None,
                  data_weight: float = 1,
+                 molfrac_weight: float = 1,
+                 target_weight: float = 1,
                  features: np.ndarray = None,
                  features_generator: List[str] = None,
                  atom_features: np.ndarray = None,
@@ -70,6 +72,8 @@ class MoleculeDatapoint:
         :param smiles: A list of the SMILES strings for the molecules.
         :param targets: A list of targets for the molecule (contains None for unknown target values).
         :param row: The raw CSV row containing the information for this molecule.
+        :param molfrac_weight: Multiplied by the encodings to weight the datapoint.
+        :param target_weight: Multiplied by the encodings to weight the target.
         :param data_weight: Weighting of the datapoint for the loss function.
         :param features: A numpy array containing additional features (e.g., Morgan fingerprint).
         :param features_generator: A list of features generators to use.
@@ -86,6 +90,8 @@ class MoleculeDatapoint:
         self.targets = targets
         self.row = row
         self.data_weight = data_weight
+        self.molfrac_weight = molfrac_weight
+        self.target_weight = target_weight
         self.features = features
         self.features_generator = features_generator
         self.atom_descriptors = atom_descriptors
@@ -355,13 +361,25 @@ class MoleculeDataset(Dataset):
             return None
 
         return [d.bond_features for d in self._data]
-
+     
     def data_weights(self) -> List[float]:
         """
         Returns the loss weighting associated with each molecule
         """
         return [d.data_weight for d in self._data]
-
+    
+    def molfrac_weights(self) -> List[float]:
+        """
+        Returns the mole fraction weightings associated with each molecule
+        """
+        return [d.molfrac_weight for d in self._data]   
+    
+    def target_weights(self) -> List[float]:
+        """
+        Returns the mole fraction weightings associated with each molecule
+        """
+        return [d.target_weight for d in self._data] 
+    
     def targets(self) -> List[List[Optional[float]]]:
         """
         Returns the targets associated with each molecule.

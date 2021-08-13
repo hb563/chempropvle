@@ -6,9 +6,9 @@ import torch
 import torch.nn as nn
 
 from .mpn import MPN
-from chemprop.args import TrainArgs
-from chemprop.features import BatchMolGraph
-from chemprop.nn_utils import get_activation_function, initialize_weights
+from chempropvle.chemprop.args import TrainArgs
+from chempropvle.chemprop.features import BatchMolGraph
+from chempropvle.chemprop.nn_utils import get_activation_function, initialize_weights
 
 
 class MoleculeModel(nn.Module):
@@ -70,11 +70,11 @@ class MoleculeModel(nn.Module):
         if args.features_only:
             first_linear_dim = args.features_size
         else:
-            if args.molfrac_weights:
+            if args.molefrac_weights:
                 first_linear_dim = args.hidden_size
             else:
                 first_linear_dim = args.hidden_size * args.number_of_molecules
-            first_linear_dim = args.hidden_size * args.number_of_molecules
+
             if args.use_input_features:
                 first_linear_dim += args.features_size
 
@@ -120,6 +120,8 @@ class MoleculeModel(nn.Module):
     def featurize(self,
                   batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
                   features_batch: List[np.ndarray] = None,
+                  molfrac_weights_batch: List[np.ndarray] = None,
+#                   target_weights_batch: List[np.ndarray] = None,
                   atom_descriptors_batch: List[np.ndarray] = None,
                   atom_features_batch: List[np.ndarray] = None,
                   bond_features_batch: List[np.ndarray] = None) -> torch.FloatTensor:
@@ -159,8 +161,9 @@ class MoleculeModel(nn.Module):
 
     def forward(self,
                 batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
-                molfrac_weights_batch: List[np.ndarray] = None,
                 features_batch: List[np.ndarray] = None,
+                molfrac_weights_batch: List[np.ndarray] = None,
+#                 target_weights_batch: List[np.ndarray] = None,
                 atom_descriptors_batch: List[np.ndarray] = None,
                 atom_features_batch: List[np.ndarray] = None,
                 bond_features_batch: List[np.ndarray] = None) -> torch.FloatTensor:
@@ -180,11 +183,11 @@ class MoleculeModel(nn.Module):
                  or molecule features if :code:`self.featurizer=True`.
         """
         if self.featurizer:
-            return self.featurize(batch, molfrac_weights_batch, features_batch, atom_descriptors_batch,
-                                  atom_features_batch, bond_features_batch)
+            return self.featurize(batch, features_batch, molfrac_weights_batch, atom_descriptors_batch,
+                                  atom_features_batch, bond_features_batch) #target_weights_batch, 
 
-        output = self.ffn(self.encoder(batch, molfrac_weights_batch, features_batch, atom_descriptors_batch,
-                                       atom_features_batch, bond_features_batch))
+        output = self.ffn(self.encoder(batch, features_batch, molfrac_weights_batch, atom_descriptors_batch,
+                                       atom_features_batch, bond_features_batch)) #target_weights_batch, 
 
         # Don't apply sigmoid during training b/c using BCEWithLogitsLoss
         if self.classification and not self.training:

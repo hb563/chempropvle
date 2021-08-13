@@ -6,9 +6,9 @@ from rdkit import Chem
 import torch
 import torch.nn as nn
 
-from chemprop.args import TrainArgs
-from chemprop.features import BatchMolGraph, get_atom_fdim, get_bond_fdim, mol2graph
-from chemprop.nn_utils import index_select_ND, get_activation_function
+from chempropvle.chemprop.args import TrainArgs
+from chempropvle.chemprop.features import BatchMolGraph, get_atom_fdim, get_bond_fdim, mol2graph
+from chempropvle.chemprop.nn_utils import index_select_ND, get_activation_function
 
 
 class MPNEncoder(nn.Module):
@@ -174,6 +174,9 @@ class MPN(nn.Module):
         self.atom_descriptors = args.atom_descriptors
         self.overwrite_default_atom_features = args.overwrite_default_atom_features
         self.overwrite_default_bond_features = args.overwrite_default_bond_features
+        self.molfracs_weights = args.molefrac_weights
+        self.use_only_target = args.use_molfrac_as_target_weights
+        self.use_both = args.use_molfrac_as_target_and_mpn
 
         if self.features_only:
             return
@@ -187,6 +190,7 @@ class MPN(nn.Module):
     def forward(self,
                 batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
                 features_batch: List[np.ndarray] = None,
+                molfrac_weights_batch: List[np.ndarray] = None,
                 atom_descriptors_batch: List[np.ndarray] = None,
                 atom_features_batch: List[np.ndarray] = None,
                 bond_features_batch: List[np.ndarray] = None) -> torch.FloatTensor:
@@ -197,6 +201,8 @@ class MPN(nn.Module):
                       list of :class:`~chemprop.features.featurization.BatchMolGraph`.
                       The outer list or BatchMolGraph is of length :code:`num_molecules` (number of datapoints in batch),
                       the inner list is of length :code:`number_of_molecules` (number of molecules per datapoint).
+                      :param molfrac_weights_batch: A list of numpy arrays containing molefractions of molecules used for weights.
+        :param molfrac_weights_batch: A list of numpy arrays containing mole fraction weights.
         :param features_batch: A list of numpy arrays containing additional features.
         :param atom_descriptors_batch: A list of numpy arrays containing additional atom descriptors.
         :param atom_features_batch: A list of numpy arrays containing additional atom features.
@@ -254,13 +260,29 @@ class MPN(nn.Module):
             encodings = [enc(ba, atom_descriptors_batch) for enc, ba in zip(self.encoder, batch)]
         else:
             encodings = [enc(ba) for enc, ba in zip(self.encoder, batch)]
-
-        output = reduce(lambda x, y: torch.cat((x, y), dim=1), encodings)
-
+            
+#             import pdb; pdb.set_trace()    # DEBUGGING            
+        if self.use_both:
+            encodings_x_molfrac = torch.Tensor(molfrac_weights_batch)
+            encodings_x_molfrac1 = encodings_x_molfrac.T
+            encodings_stack = torch.stack(encodings)
+            encodings_x_molfrac2 = encodings_x_molfrac1.unsqueeze(-1)*encodings_stack
+            output = encodings_x_molfrac2.sum(dim=0)    
+        if self.use_only_target:
+            output = reduce(lambda x, y: torch.cat((x, y), dim=1), encodings)
+        elif self.molfracs_weights:
+            encodings_x_molfrac = torch.Tensor(molfrac_weights_batch)
+            encodings_x_molfrac1 = encodings_x_molfrac.T
+            encodings_stack = torch.stack(encodings)
+            encodings_x_molfrac2 = encodings_x_molfrac1.unsqueeze(-1)*encodings_stack
+            output = encodings_x_molfrac2.sum(dim=0)
+        else:
+            output = reduce(lambda x, y: torch.cat((x, y), dim=1), encodings)
+        
         if self.use_input_features:
             if len(features_batch.shape) == 1:
                 features_batch = features_batch.view(1, -1)
-
+                
             output = torch.cat([output, features_batch], dim=1)
 
         return output

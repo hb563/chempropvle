@@ -8,10 +8,10 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from tqdm import tqdm
 
-from chemprop.args import TrainArgs
-from chemprop.data import MoleculeDataLoader, MoleculeDataset
-from chemprop.models import MoleculeModel
-from chemprop.nn_utils import compute_gnorm, compute_pnorm, NoamLR
+from chempropvle.chemprop.args import TrainArgs
+from chempropvle.chemprop.data import MoleculeDataLoader, MoleculeDataset
+from chempropvle.chemprop.models import MoleculeModel
+from chempropvle.chemprop.nn_utils import compute_gnorm, compute_pnorm, NoamLR
 
 
 def train(model: MoleculeModel,
@@ -45,28 +45,37 @@ def train(model: MoleculeModel,
     for batch in tqdm(data_loader, total=len(data_loader), leave=False):
         # Prepare batch
         batch: MoleculeDataset
-        mol_batch, features_batch, target_batch, atom_descriptors_batch, atom_features_batch, bond_features_batch, data_weights_batch = \
+        mol_batch, features_batch, target_batch, atom_descriptors_batch, atom_features_batch, bond_features_batch, data_weights_batch, molfrac_weights_batch, target_weights_batch = \
             batch.batch_graph(), batch.features(), batch.targets(), batch.atom_descriptors(), \
-            batch.atom_features(), batch.bond_features(), batch.data_weights()
+            batch.atom_features(), batch.bond_features(), batch.data_weights(), batch.molfrac_weights(), batch.target_weights()
 
         mask = torch.Tensor([[x is not None for x in tb] for tb in target_batch])
         targets = torch.Tensor([[0 if x is None else x for x in tb] for tb in target_batch])
-
+        
         if args.target_weights is not None:
             target_weights = torch.Tensor(args.target_weights)
         else:
             target_weights = torch.ones_like(targets)
+
+#         import pdb; pdb.set_trace()    # DEBUGGING            
+
+        if args.use_molfrac_as_target_weights:
+            target_weights = torch.Tensor(target_weights_batch)
+            
         data_weights = torch.Tensor(data_weights_batch).unsqueeze(1)
+        
+        
 
         # Run model
         model.zero_grad()
-        preds = model(mol_batch, features_batch, atom_descriptors_batch, atom_features_batch, bond_features_batch)
+        preds = model(mol_batch, features_batch, molfrac_weights_batch, atom_descriptors_batch, atom_features_batch, bond_features_batch)
 
         # Move tensors to correct device
         mask = mask.to(preds.device)
         targets = targets.to(preds.device)
         target_weights = target_weights.to(preds.device)
         data_weights = data_weights.to(preds.device)
+
 
         if args.dataset_type == 'multiclass':
             targets = targets.long()

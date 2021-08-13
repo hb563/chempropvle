@@ -8,9 +8,9 @@ from typing_extensions import Literal
 import torch
 from tap import Tap  # pip install typed-argument-parser (https://github.com/swansonk14/typed-argument-parser)
 
-import chemprop.data.utils
-from chemprop.data import set_cache_mol, empty_cache
-from chemprop.features import get_available_features_generators
+import chempropvle.chemprop.data.utils
+from chempropvle.chemprop.data import set_cache_mol, empty_cache
+from chempropvle.chemprop.features import get_available_features_generators
 
 
 Metric = Literal['auc', 'prc-auc', 'rmse', 'mae', 'mse', 'r2', 'accuracy', 'cross_entropy', 'binary_cross_entropy']
@@ -235,6 +235,10 @@ class TrainArgs(CommonArgs):
     """Path to separate test set, optional."""
     data_weights_path: str = None
     """Path to weights for each molecule in the training data, affecting the relative weight of molecules in the loss function"""
+    molfrac_weights_path: str = None
+    """Path to mole fractions CSV file."""
+    target_weights_path: str = None
+    """Path to mole fractions CSV file."""
     target_weights: List[float] = None
     """Weights associated with each target, affecting the relative weight of targets in the loss function. Must match the number of target columns."""
     split_type: Literal['random', 'scaffold_balanced', 'predetermined', 'crossval', 'cv', 'cv-no-test', 'index_predetermined'] = 'random'
@@ -296,7 +300,7 @@ class TrainArgs(CommonArgs):
     Loads test results from any folds that have already been completed and skips training those folds.
     """
 
-    # Model arguments
+    # Model arguments    
     bias: bool = False
     """Whether to add bias to linear layers."""
     hidden_size: int = 300
@@ -306,6 +310,12 @@ class TrainArgs(CommonArgs):
     mpn_shared: bool = False
     """Whether to use the same message passing neural network for all input molecules
     Only relevant if :code:`number_of_molecules > 1`"""
+    molefrac_weights: bool = False
+    """Whether to multiply mole fractions as weights to MPN."""   
+    use_molfrac_as_target_weights: bool = False
+    """Whether to multiply mole fractions as weights to MPN."""   
+    use_molfrac_as_target_and_mpn: bool = False
+    """Whether to multiply mole fractions as weights to MPN as well as targets."""  
     dropout: float = 0.0
     """Dropout probability."""
     activation: Literal['ReLU', 'LeakyReLU', 'PReLU', 'tanh', 'SELU', 'ELU'] = 'ReLU'
@@ -490,7 +500,7 @@ class TrainArgs(CommonArgs):
         global temp_dir  # Prevents the temporary directory from being deleted upon function return
 
         # Process SMILES columns
-        self.smiles_columns = chemprop.data.utils.preprocess_smiles_columns(
+        self.smiles_columns = chempropvle.chemprop.data.utils.preprocess_smiles_columns(
             path=self.data_path,
             smiles_columns=self.smiles_columns,
             number_of_molecules=self.number_of_molecules,
@@ -629,7 +639,7 @@ class PredictArgs(CommonArgs):
     def process_args(self) -> None:
         super(PredictArgs, self).process_args()
 
-        self.smiles_columns = chemprop.data.utils.preprocess_smiles_columns(
+        self.smiles_columns = chempropvle.chemprop.data.utils.preprocess_smiles_columns(
             path=self.test_path,
             smiles_columns=self.smiles_columns,
             number_of_molecules=self.number_of_molecules,
@@ -663,7 +673,7 @@ class InterpretArgs(CommonArgs):
     def process_args(self) -> None:
         super(InterpretArgs, self).process_args()
 
-        self.smiles_columns = chemprop.data.utils.preprocess_smiles_columns(
+        self.smiles_columns = chempropvle.chemprop.data.utils.preprocess_smiles_columns(
             path=self.data_path,
             smiles_columns=self.smiles_columns,
             number_of_molecules=self.number_of_molecules,
@@ -730,7 +740,7 @@ class SklearnPredictArgs(Tap):
 
     def process_args(self) -> None:
 
-        self.smiles_columns = chemprop.data.utils.preprocess_smiles_columns(
+        self.smiles_columns = chempropvle.chemprop.data.utils.preprocess_smiles_columns(
             path=self.test_path,
             smiles_columns=self.smiles_columns,
             number_of_molecules=self.number_of_molecules,
