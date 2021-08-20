@@ -553,6 +553,7 @@ def timeit(logger_name: str = None) -> Callable[[Callable], Callable]:
         """
         @wraps(func)
         def wrap(*args, **kwargs) -> Any:
+            import pdb; pdb.set_trace()    # DEBUGGING            
             start_time = time()
             result = func(*args, **kwargs)
             delta = timedelta(seconds=round(time() - start_time))
