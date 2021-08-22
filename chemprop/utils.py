@@ -551,9 +551,10 @@ def timeit(logger_name: str = None) -> Callable[[Callable], Callable]:
         :param func: The function to wrap with the timer.
         :return: The function wrapped with the timer.
         """
+#         import pdb; pdb.set_trace()    # DEBUGGING            
+
         @wraps(func)
         def wrap(*args, **kwargs) -> Any:
-            import pdb; pdb.set_trace()    # DEBUGGING            
             start_time = time()
             result = func(*args, **kwargs)
             delta = timedelta(seconds=round(time() - start_time))

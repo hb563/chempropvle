@@ -121,7 +121,6 @@ class MoleculeModel(nn.Module):
                   batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
                   features_batch: List[np.ndarray] = None,
                   molfrac_weights_batch: List[np.ndarray] = None,
-#                   target_weights_batch: List[np.ndarray] = None,
                   atom_descriptors_batch: List[np.ndarray] = None,
                   atom_features_batch: List[np.ndarray] = None,
                   bond_features_batch: List[np.ndarray] = None) -> torch.FloatTensor:
@@ -140,6 +139,8 @@ class MoleculeModel(nn.Module):
         """
         return self.ffn[:-1](self.encoder(batch, features_batch, atom_descriptors_batch,
                                           atom_features_batch, bond_features_batch))
+    
+#                   target_weights_batch: List[np.ndarray] = None,
 
     def fingerprint(self,
                   batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
@@ -163,7 +164,6 @@ class MoleculeModel(nn.Module):
                 batch: Union[List[List[str]], List[List[Chem.Mol]], List[List[Tuple[Chem.Mol, Chem.Mol]]], List[BatchMolGraph]],
                 features_batch: List[np.ndarray] = None,
                 molfrac_weights_batch: List[np.ndarray] = None,
-#                 target_weights_batch: List[np.ndarray] = None,
                 atom_descriptors_batch: List[np.ndarray] = None,
                 atom_features_batch: List[np.ndarray] = None,
                 bond_features_batch: List[np.ndarray] = None) -> torch.FloatTensor:
@@ -188,6 +188,8 @@ class MoleculeModel(nn.Module):
 
         output = self.ffn(self.encoder(batch, features_batch, molfrac_weights_batch, atom_descriptors_batch,
                                        atom_features_batch, bond_features_batch)) #target_weights_batch, 
+        
+#                 target_weights_batch: List[np.ndarray] = None,
 
         # Don't apply sigmoid during training b/c using BCEWithLogitsLoss
         if self.classification and not self.training:

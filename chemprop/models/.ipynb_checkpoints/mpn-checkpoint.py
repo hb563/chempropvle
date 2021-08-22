@@ -261,21 +261,13 @@ class MPN(nn.Module):
         else:
             encodings = [enc(ba) for enc, ba in zip(self.encoder, batch)]
             
-#             import pdb; pdb.set_trace()    # DEBUGGING            
-        if self.use_both:
+            import pdb; pdb.set_trace()    # DEBUGGING            
+        if self.molfracs_weights:
             encodings_x_molfrac = torch.Tensor(molfrac_weights_batch)
             encodings_x_molfrac1 = encodings_x_molfrac.T
             encodings_stack = torch.stack(encodings)
             encodings_x_molfrac2 = encodings_x_molfrac1.unsqueeze(-1)*encodings_stack
             output = encodings_x_molfrac2.sum(dim=0)    
-        if self.use_only_target:
-            output = reduce(lambda x, y: torch.cat((x, y), dim=1), encodings)
-        elif self.molfracs_weights:
-            encodings_x_molfrac = torch.Tensor(molfrac_weights_batch)
-            encodings_x_molfrac1 = encodings_x_molfrac.T
-            encodings_stack = torch.stack(encodings)
-            encodings_x_molfrac2 = encodings_x_molfrac1.unsqueeze(-1)*encodings_stack
-            output = encodings_x_molfrac2.sum(dim=0)
         else:
             output = reduce(lambda x, y: torch.cat((x, y), dim=1), encodings)
         
