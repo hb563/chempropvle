@@ -1,4 +1,4 @@
-name: chemprop
+name: chempropvle
 
 channels:
   - conda-forge
